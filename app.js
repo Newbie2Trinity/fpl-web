@@ -171,7 +171,7 @@
   // Build Optimal Squad
   // ------------------------------------------------------------------
 
-  function renderSquadResult(result, containerEl, onSave) {
+  function renderSquadResult(result, containerEl, onSave, remaining) {
     const startingByPos = { GKP: [], DEF: [], MID: [], FWD: [] };
     result.starting_xi.forEach(p => {
       startingByPos[p.position] = startingByPos[p.position] || [];
@@ -214,6 +214,7 @@
     html += `
       <div class="summary-row">
         <span>Cost <strong>${fmtCost(result.total_cost)}</strong></span>
+        ${remaining !== undefined ? `<span>Remaining <strong>${fmtCost(remaining)}</strong></span>` : ""}
         <span>Total xP <strong>${fmtXp(result.total_xp)}</strong></span>
       </div>`;
 
@@ -270,8 +271,9 @@
         method: "POST",
         body: { gameweek, horizon, budget },
       });
+      const remaining = Math.round((budget - result.total_cost) * 10) / 10;
       renderSquadResult(result, resultEl, (btn2) =>
-        saveResultAsSquad(result, gameweek, 0, 1, btn2)
+        saveResultAsSquad(result, gameweek, remaining, 1, btn2), remaining
       );
     } catch (e) {
       resultEl.innerHTML = `<p class="error">${e.message}</p>`;
@@ -284,8 +286,30 @@
   // Transfer Suggestions
   // ------------------------------------------------------------------
 
+  async function runInlineChipCheck(gameweek, bank) {
+    const chipEl = document.getElementById("transferChipResult");
+    const horizon = parseInt(document.getElementById("chipHorizon").value, 10) || 8;
+    chipEl.innerHTML = '<p class="hint">Checking chip windows…</p>';
+    try {
+      const chipResult = await apiFetch("/api/chips", {
+        method: "POST",
+        body: {
+          gameweek,
+          horizon,
+          current_squad_ids: state.mySquad.squad,
+          bank,
+          chips_used: chipsUsedForHalf(gameweek),
+        },
+      });
+      renderChipAdvisorResult(chipResult, "transferChipResult", true);
+    } catch (e) {
+      chipEl.innerHTML = `<p class="hint">Chip check failed: ${e.message}</p>`;
+    }
+  }
+
   async function getTransferSuggestions() {
     const resultEl = document.getElementById("transferResult");
+    const chipEl = document.getElementById("transferChipResult");
     const btn = document.getElementById("transferBtn");
 
     if (!state.mySquad || !state.mySquad.squad || state.mySquad.squad.length === 0) {
@@ -296,21 +320,27 @@
     const gameweek = parseInt(document.getElementById("transferGameweek").value, 10);
     const bank = parseFloat(document.getElementById("transferBank").value);
     const freeTransfers = parseInt(document.getElementById("transferFreeTransfers").value, 10);
+    const horizon = parseInt(document.getElementById("transferHorizon").value, 10);
 
     btn.disabled = true;
     resultEl.innerHTML = '<p class="hint">Thinking…</p>';
+    chipEl.innerHTML = "";
     try {
       const result = await apiFetch("/api/transfers", {
         method: "POST",
         body: {
           gameweek,
-          horizon: 1,
+          horizon,
           current_squad_ids: state.mySquad.squad,
           bank,
           free_transfers: freeTransfers,
           max_transfers: 5,
         },
       });
+
+      // Fire the chip check alongside every transfer run so both are visible
+      // in one go, whether or not a transfer is actually recommended.
+      runInlineChipCheck(gameweek, bank);
 
       if (result.n_transfers === 0) {
         resultEl.innerHTML = '<p class="hint">No changes recommended.</p>';
@@ -340,10 +370,17 @@
       });
       html += "</div>";
 
+      // Bank left after this transfer = what you had, minus what the swap
+      // actually costs (new players in, minus what selling the old ones frees up).
+      const spend = result.transfers_in.reduce((s, p) => s + p.cost, 0)
+        - result.transfers_out.reduce((s, p) => s + p.cost, 0);
+      const bankAfter = Math.round((bank - spend) * 10) / 10;
+
       html += `
         <div class="summary-row">
           <span>Hit <strong>${result.hit_cost > 0 ? "-" + result.hit_cost : "0"}</strong></span>
           <span>Net gain <strong>${fmtXp(result.net_xp_gain)}</strong></span>
+          <span>Bank after <strong>${fmtCost(bankAfter)}</strong></span>
         </div>`;
 
       resultEl.innerHTML = html;
@@ -352,7 +389,7 @@
       saveBtn.className = "btn btn-secondary";
       saveBtn.textContent = "Save this squad";
       saveBtn.addEventListener("click", () =>
-        saveResultAsSquad(result.new_squad, gameweek, bank, freeTransfers, saveBtn)
+        saveResultAsSquad(result.new_squad, gameweek, bankAfter, freeTransfers, saveBtn)
       );
       resultEl.appendChild(saveBtn);
     } catch (e) {
@@ -417,9 +454,20 @@
     }
   }
 
-  function renderChipAdvisorResult(result) {
-    const el = document.getElementById("chipResult");
+  function chipsUsedForHalf(gameweek) {
+    const half = gameweek <= FIRST_HALF_LAST_GW ? "first" : "second";
+    return (state.mySquad.chips_used || [])
+      .filter(key => key.endsWith(`_${half}`))
+      .map(key => key.replace(`_${half}`, ""));
+  }
+
+  function renderChipAdvisorResult(result, targetElId, compact) {
+    const el = document.getElementById(targetElId || "chipResult");
     let html = "";
+
+    if (compact) {
+      html += '<div class="chip-inline-heading">Chip check</div>';
+    }
 
     if (result.headline) {
       const chipLabel = CHIP_LABELS[result.headline.chip];
@@ -430,6 +478,11 @@
         </div>`;
     } else {
       html += `<div class="chip-headline">Nothing clears the bar this window — holding every chip looks right for now.</div>`;
+    }
+
+    if (compact) {
+      el.innerHTML = html;
+      return;
     }
 
     CHIP_TYPES.forEach(chip => {
@@ -478,10 +531,7 @@
 
     const gameweek = parseInt(document.getElementById("chipGameweek").value, 10);
     const horizon = parseInt(document.getElementById("chipHorizon").value, 10);
-    const half = gameweek <= FIRST_HALF_LAST_GW ? "first" : "second";
-    const chipsUsedThisHalf = (state.mySquad.chips_used || [])
-      .filter(key => key.endsWith(`_${half}`))
-      .map(key => key.replace(`_${half}`, ""));
+    const chipsUsedThisHalf = chipsUsedForHalf(gameweek);
 
     btn.disabled = true;
     resultEl.innerHTML = '<p class="hint">Scanning fixtures for double/blank gameweeks…</p>';
