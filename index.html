@@ -39,7 +39,12 @@
   </section>
 
   <section class="panel">
-    <h2>Build Optimal Squad</h2>
+    <h2>Pick Your Lineup</h2>
+    <div class="mode-toggle" id="buildModeToggle">
+      <button type="button" class="mode-btn active" data-mode="myset">My Squad</button>
+      <button type="button" class="mode-btn" data-mode="scratch">From Scratch (Wildcard)</button>
+    </div>
+    <p class="hint" id="buildModeHint">Picks the best starting XI and captain from your saved squad -- no transfers, no budget.</p>
     <div class="field-row">
       <div class="field">
         <label for="buildGameweek">Gameweek</label>
@@ -49,12 +54,12 @@
         <label for="buildHorizon">Horizon</label>
         <input id="buildHorizon" type="number" min="1" max="10" value="3">
       </div>
-      <div class="field">
+      <div class="field hidden" id="buildBudgetField">
         <label for="buildBudget">Budget</label>
         <input id="buildBudget" type="number" min="0" step="0.1" value="100">
       </div>
     </div>
-    <button id="buildSquadBtn" class="btn btn-primary">Build Optimal Squad</button>
+    <button id="buildSquadBtn" class="btn btn-primary">Pick Best Lineup</button>
     <div id="buildResult"></div>
   </section>
 

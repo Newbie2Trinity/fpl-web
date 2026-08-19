@@ -15,6 +15,7 @@
     apiBaseUrl: "",
     appPassword: "",
     mySquad: null, // saved row from /api/squad, enriched with player_id list
+    buildMode: "myset", // "myset" = pick lineup from saved squad, "scratch" = build fresh (wildcard)
   };
 
   // ------------------------------------------------------------------
@@ -209,7 +210,7 @@
   // Build Optimal Squad
   // ------------------------------------------------------------------
 
-  function renderSquadResult(result, containerEl, onSave, remaining) {
+  function renderSquadResult(result, containerEl, onSave, remaining, saveLabel) {
     const startingByPos = { GKP: [], DEF: [], MID: [], FWD: [] };
     result.starting_xi.forEach(p => {
       startingByPos[p.position] = startingByPos[p.position] || [];
@@ -260,9 +261,38 @@
 
     const saveBtn = document.createElement("button");
     saveBtn.className = "btn btn-secondary";
-    saveBtn.textContent = "Save this as my squad";
+    saveBtn.textContent = saveLabel || "Save this as my squad";
     saveBtn.addEventListener("click", () => onSave(saveBtn));
     containerEl.appendChild(saveBtn);
+  }
+
+  async function saveCaptainOnly(result, gameweek, btn) {
+    const label = "Set as this week's captain";
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    try {
+      await apiFetch("/api/squad", {
+        method: "POST",
+        auth: true,
+        body: {
+          // Lineup-only mode never changes who's in the squad -- just which
+          // of them is captain this week.
+          squad_ids: state.mySquad.squad,
+          captain_id: result.captain ? result.captain.id : null,
+          bank: state.mySquad.bank || 0,
+          free_transfers: state.mySquad.free_transfers || 1,
+          gameweek: gameweek,
+          chips_used: state.mySquad.chips_used || [],
+        },
+      });
+      btn.textContent = "Saved ✓";
+      loadMySquad();
+    } catch (e) {
+      btn.textContent = label;
+      alert("Couldn't save captain: " + e.message);
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   async function saveResultAsSquad(result, gameweek, bank, freeTransfers, btn) {
@@ -295,13 +325,53 @@
     }
   }
 
+  function setBuildMode(mode) {
+    state.buildMode = mode;
+    document.querySelectorAll("#buildModeToggle .mode-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.mode === mode);
+    });
+    document.getElementById("buildBudgetField").classList.toggle("hidden", mode !== "scratch");
+    document.getElementById("buildSquadBtn").textContent =
+      mode === "myset" ? "Pick Best Lineup" : "Build Optimal Squad";
+    document.getElementById("buildModeHint").textContent =
+      mode === "myset"
+        ? "Picks the best starting XI and captain from your saved squad -- no transfers, no budget."
+        : "Builds a brand new 15 from scratch within your budget -- for wildcard or free hit weeks.";
+    document.getElementById("buildResult").innerHTML = "";
+  }
+
   async function buildOptimalSquad() {
     const gameweek = parseInt(document.getElementById("buildGameweek").value, 10);
     const horizon = parseInt(document.getElementById("buildHorizon").value, 10);
-    const budget = parseFloat(document.getElementById("buildBudget").value);
     const resultEl = document.getElementById("buildResult");
     const btn = document.getElementById("buildSquadBtn");
 
+    if (state.buildMode === "myset") {
+      if (!state.mySquad || !state.mySquad.squad || state.mySquad.squad.length === 0) {
+        resultEl.innerHTML = '<p class="hint">No squad saved yet — switch to "From Scratch" to build one.</p>';
+        return;
+      }
+      btn.disabled = true;
+      resultEl.innerHTML = '<p class="hint">Picking your best lineup…</p>';
+      try {
+        const result = await apiFetch("/api/lineup", {
+          method: "POST",
+          body: { gameweek, horizon, current_squad_ids: state.mySquad.squad },
+        });
+        renderSquadResult(
+          result, resultEl,
+          (btn2) => saveCaptainOnly(result, gameweek, btn2),
+          undefined, "Set as this week's captain"
+        );
+      } catch (e) {
+        resultEl.innerHTML = `<p class="error">${e.message}</p>`;
+      } finally {
+        btn.disabled = false;
+      }
+      return;
+    }
+
+    const budget = parseFloat(document.getElementById("buildBudget").value);
     btn.disabled = true;
     resultEl.innerHTML = '<p class="hint">Optimizing…</p>';
     try {
@@ -310,8 +380,10 @@
         body: { gameweek, horizon, budget },
       });
       const remaining = Math.round((budget - result.total_cost) * 10) / 10;
-      renderSquadResult(result, resultEl, (btn2) =>
-        saveResultAsSquad(result, gameweek, remaining, 1, btn2), remaining
+      renderSquadResult(
+        result, resultEl,
+        (btn2) => saveResultAsSquad(result, gameweek, remaining, 1, btn2),
+        remaining, "Save this as my squad"
       );
     } catch (e) {
       resultEl.innerHTML = `<p class="error">${e.message}</p>`;
@@ -601,6 +673,9 @@
     document.getElementById("settingsToggle").addEventListener("click", toggleSettings);
     document.getElementById("saveSettings").addEventListener("click", saveSettings);
     document.getElementById("buildSquadBtn").addEventListener("click", buildOptimalSquad);
+    document.querySelectorAll("#buildModeToggle .mode-btn").forEach(b => {
+      b.addEventListener("click", () => setBuildMode(b.dataset.mode));
+    });
     document.getElementById("transferBtn").addEventListener("click", getTransferSuggestions);
     document.getElementById("chipAnalyzeBtn").addEventListener("click", analyzeChipWindows);
     renderChipToggles();

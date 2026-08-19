@@ -94,6 +94,7 @@ main .panel { margin: 0; }
 }
 
 .settings-panel.hidden { display: none; }
+.hidden { display: none !important; }
 
 label {
   font-size: 0.8rem;
@@ -264,6 +265,32 @@ input:focus {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin: 0 0 6px;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 10px;
+}
+
+.mode-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: var(--purple-light);
+  color: var(--text);
 }
 
 .chip-toggle-row {
