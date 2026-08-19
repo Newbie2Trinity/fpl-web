@@ -106,6 +106,11 @@
       state.mySquad = saved;
       state.mySquad.chips_used = saved.chips_used || [];
 
+      // Keep the Transfer Suggestions bank field in sync with whatever's
+      // actually saved, instead of leaving it blank/manual every time.
+      const transferBankInput = document.getElementById("transferBank");
+      if (transferBankInput) transferBankInput.value = saved.bank || 0;
+
       const gw = saved.gameweek || 1;
       let playersById = {};
       try {
@@ -165,6 +170,39 @@
       </div>`;
 
     el.innerHTML = html;
+
+    const clearBtn = document.createElement("button");
+    clearBtn.className = "btn btn-secondary";
+    clearBtn.textContent = "Clear saved squad";
+    clearBtn.addEventListener("click", () => clearMySquad(clearBtn));
+    el.appendChild(clearBtn);
+  }
+
+  async function clearMySquad(btn) {
+    if (!confirm("Clear your saved squad? This can't be undone.")) return;
+    btn.disabled = true;
+    btn.textContent = "Clearing…";
+    try {
+      const chipsUsed = (state.mySquad && state.mySquad.chips_used) || [];
+      const gameweek = (state.mySquad && state.mySquad.gameweek) || 1;
+      await apiFetch("/api/squad", {
+        method: "POST",
+        auth: true,
+        body: {
+          squad_ids: [],
+          captain_id: null,
+          bank: 0,
+          free_transfers: 1,
+          gameweek: gameweek,
+          chips_used: chipsUsed, // chip usage is season progress, not part of the squad -- keep it
+        },
+      });
+      loadMySquad();
+    } catch (e) {
+      alert("Couldn't clear squad: " + e.message);
+      btn.disabled = false;
+      btn.textContent = "Clear saved squad";
+    }
   }
 
   // ------------------------------------------------------------------
