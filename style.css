@@ -295,6 +295,24 @@ input:focus {
   text-decoration: line-through;
 }
 
+.chip-inline {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
+.chip-inline:empty {
+  display: none;
+}
+
+.chip-inline-heading {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
 .chip-headline {
   background: linear-gradient(135deg, var(--purple-light), var(--bg));
   border: 1px solid var(--green);
