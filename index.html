@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FPL Companion">
+<meta name="theme-color" content="#12002b">
+<title>FPL Companion</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>FPL Companion</h1>
+  <button id="settingsToggle" class="icon-btn" aria-label="Settings">⚙</button>
+</header>
+
+<section id="settingsPanel" class="panel settings-panel hidden">
+  <h2>Settings</h2>
+  <label for="apiBaseUrl">API base URL</label>
+  <input id="apiBaseUrl" type="url" placeholder="https://fpl-api-xxxx.vercel.app">
+
+  <label for="appPassword">App password</label>
+  <input id="appPassword" type="password" placeholder="optional">
+
+  <button id="saveSettings" class="btn btn-primary">Save</button>
+  <p id="settingsStatus" class="hint"></p>
+</section>
+
+<main>
+
+  <section class="panel">
+    <h2>My Squad</h2>
+    <div id="mySquadContent">
+      <p class="hint">Loading…</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Build Optimal Squad</h2>
+    <div class="field-row">
+      <div class="field">
+        <label for="buildGameweek">Gameweek</label>
+        <input id="buildGameweek" type="number" min="1" max="38" value="1">
+      </div>
+      <div class="field">
+        <label for="buildHorizon">Horizon</label>
+        <input id="buildHorizon" type="number" min="1" max="10" value="1">
+      </div>
+      <div class="field">
+        <label for="buildBudget">Budget</label>
+        <input id="buildBudget" type="number" min="0" step="0.1" value="100">
+      </div>
+    </div>
+    <button id="buildSquadBtn" class="btn btn-primary">Build Optimal Squad</button>
+    <div id="buildResult"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Transfer Suggestions</h2>
+    <div class="field-row">
+      <div class="field">
+        <label for="transferGameweek">Gameweek</label>
+        <input id="transferGameweek" type="number" min="1" max="38" value="1">
+      </div>
+      <div class="field">
+        <label for="transferBank">Bank</label>
+        <input id="transferBank" type="number" min="0" step="0.1" value="0">
+      </div>
+      <div class="field">
+        <label for="transferFreeTransfers">Free transfers</label>
+        <input id="transferFreeTransfers" type="number" min="0" max="5" value="1">
+      </div>
+    </div>
+    <button id="transferBtn" class="btn btn-primary">Get Transfer Suggestions</button>
+    <div id="transferResult"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Chip Advisor</h2>
+    <p class="hint">Toggle chips off once you've used them. 2026/27 rules: two full sets (8 chips total) — the first set must be played by GW19, the second unlocks for GW20-38, one chip per gameweek.</p>
+
+    <div class="chip-half">
+      <h3>First half (GW1-19)</h3>
+      <div class="chip-toggle-row" id="chipToggleFirst"></div>
+    </div>
+    <div class="chip-half">
+      <h3>Second half (GW20-38)</h3>
+      <div class="chip-toggle-row" id="chipToggleSecond"></div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="chipGameweek">From gameweek</label>
+        <input id="chipGameweek" type="number" min="1" max="38" value="1">
+      </div>
+      <div class="field">
+        <label for="chipHorizon">Look ahead</label>
+        <input id="chipHorizon" type="number" min="1" max="19" value="8">
+      </div>
+    </div>
+    <button id="chipAnalyzeBtn" class="btn btn-primary">Analyze Chip Windows</button>
+    <div id="chipResult"></div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p>Data via the official FPL API. For personal use.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
