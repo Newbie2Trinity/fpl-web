@@ -85,6 +85,22 @@
     return Number(xp).toFixed(1) + " xP";
   }
 
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // risk_note (injury/suspension/rotation flag) comes from the API's xP
+  // model -- see _lib.py XPModel._risk_note(). Rendered as a small warning
+  // badge; hover/tap shows the full reason via the title attribute.
+  function riskTagHtml(p) {
+    if (!p || !p.risk_note) return "";
+    return `<span class="risk-tag" title="${escapeHtml(p.risk_note)}">risk</span>`;
+  }
+
   // ------------------------------------------------------------------
   // My Squad
   // ------------------------------------------------------------------
@@ -141,6 +157,7 @@
         web_name: p ? p.web_name : `Player ${pid}`,
         team_short: p ? p.team_short : "",
         xp: p ? p.xp : null,
+        risk_note: p ? p.risk_note : null,
         isCaptain: pid === saved.captain_id,
       });
     });
@@ -157,6 +174,7 @@
               <span class="pos-tag">${pos}</span>
               <span>${p.web_name}${p.team_short ? " (" + p.team_short + ")" : ""}</span>
               ${p.isCaptain ? '<span class="captain-tag">C</span>' : ""}
+              ${riskTagHtml(p)}
             </div>
             <span class="player-xp">${p.xp !== null ? fmtXp(p.xp) : "-"}</span>
           </div>`;
@@ -230,6 +248,7 @@
               <span>${p.web_name} (${p.team_short})</span>
               ${isCaptain ? '<span class="captain-tag">C</span>' : ""}
               ${isVice ? '<span class="vice-tag">V</span>' : ""}
+              ${riskTagHtml(p)}
             </div>
             <span class="player-xp">${fmtXp(p.xp)}</span>
           </div>`;
@@ -244,6 +263,7 @@
           <div class="player-name">
             <span class="pos-tag">${p.position}</span>
             <span>${p.web_name} (${p.team_short})</span>
+            ${riskTagHtml(p)}
           </div>
           <span class="player-xp">${fmtXp(p.xp)}</span>
         </div>`;
@@ -464,6 +484,7 @@
             <div class="player-name">
               <span class="pos-tag">${p.position}</span>
               <span>${p.web_name} (${p.team_short})</span>
+              ${riskTagHtml(p)}
             </div>
           </div>`;
       });
@@ -474,6 +495,7 @@
             <div class="player-name">
               <span class="pos-tag">${p.position}</span>
               <span>${p.web_name} (${p.team_short})</span>
+              ${riskTagHtml(p)}
             </div>
             <span class="player-xp">${fmtXp(p.xp)}</span>
           </div>`;

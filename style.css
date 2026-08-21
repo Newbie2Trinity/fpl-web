@@ -393,6 +393,18 @@ input:focus {
   text-transform: uppercase;
 }
 
+.risk-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+  padding: 1px 4px;
+  cursor: help;
+}
+
 .dgw-flag {
   color: var(--green);
   font-weight: 700;
