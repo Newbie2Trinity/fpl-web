@@ -486,6 +486,7 @@
               <span>${p.web_name} (${p.team_short})</span>
               ${riskTagHtml(p)}
             </div>
+            <span class="player-xp">${fmtXp(p.xp)}</span>
           </div>`;
       });
       html += '</div><div class="transfer-block"><h3>In</h3>';
